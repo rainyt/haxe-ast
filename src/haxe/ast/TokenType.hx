@@ -39,13 +39,48 @@ enum abstract TokenType(String) to String from String {
 	 */
 	var LBRACE = "{";
 
-    /**
-     * }
-     */
-    var RBRACE = "}";
+	/**
+	 * }
+	 */
+	var RBRACE = "}";
 
-    /**
-     * private
-     */
-    var PRIVATE = "private";
+	/**
+	 * private
+	 */
+	var PRIVATE = "private";
+
+	/**
+	 * public
+	 */
+	var PUBLIC = "public";
+
+	/**
+	 * 定义
+	 */
+	var VAR = "var";
+
+	/**
+	 * function
+	 */
+	var FUNCTION = "function";
+
+	/**
+	 * :
+	 */
+	var COLON = ":";
+
+	/**
+	 * >
+	 */
+	var GREATER = ">";
+
+	/**
+	 * <
+	 */
+	var LESS = "<";
+
+	/**
+	 * =
+	 */
+	var EQUAL = "=";
 }

@@ -80,9 +80,10 @@ class AST {
 	/**
 	 * 读取Token
 	 */
-	private function readToken():Token {
+	private function readToken(tokenAdd = true):Token {
 		var token = __tokens[__tokenIndex];
-		__tokenIndex++;
+		if (tokenAdd)
+			__tokenIndex++;
 		return token;
 	}
 
@@ -96,7 +97,7 @@ class AST {
 		var tokens = [];
 		while (__tokenIndex < __tokens.length) {
 			var token = readToken();
-			if (token.token == end) {
+			if (token.token == end && readToken(false).token != end) {
 				break;
 			}
 			if (tokenTypes != null && tokenTypes.indexOf(token.token) == -1) {
@@ -144,11 +145,47 @@ class AST {
 		while (__tokenIndex < __tokens.length) {
 			var token = this.readToken();
 			switch token.token {
+				case PUBLIC:
+					field.access.push(APUBLIC);
 				case PRIVATE:
+					field.access.push(APRIVATE);
+				case FUNCTION:
+				// 方法定义读取
+				case VAR:
+					field.name = this.readToken().getValueByToken();
+					// 操作符
+					var nextToken = this.readToken();
+					if (nextToken.token == COLON) {
+						// 绑定了类型
+						field.type = readClass();
+					}
+					if (this.readToken(false).token == EQUAL) {
+						// 赋值处理
+						__tokenIndex++;
+						field.value = readTokens(END).getValueByArrayToken();
+						trace("value is ", field.value);
+					}
+				case END:
+					// 下一个
+					this.parserFields();
+					break;
 				default:
 					// 意外行为
 					throw "Token error at " + token.toString();
 			}
 		}
+	}
+
+	/**
+	 * 获得一个类型
+	 */
+	public function readClass():Class<Dynamic> {
+		var className = readToken().getValueByToken();
+		var nextToken = readToken(false);
+		if (nextToken.token == LESS) {
+			__tokenIndex++;
+			readTokens(GREATER);
+		}
+		return Type.resolveClass(className);
 	}
 }
