@@ -45,6 +45,16 @@ enum abstract TokenType(String) to String from String {
 	var RBRACE = "}";
 
 	/**
+	 * (
+	 */
+	var LPAREN_MIN = "(";
+
+	/**
+	 * )
+	 */
+	var RPAREN_MIN = ")";
+
+	/**
 	 * private
 	 */
 	var PRIVATE = "private";

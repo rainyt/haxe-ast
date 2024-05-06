@@ -1,5 +1,7 @@
 package haxe;
 
+import haxe.ast.BlockExpr;
+import haxe.Constraints.Function;
 import haxe.ast.Field;
 import haxe.ast.TokenType;
 import haxe.ast.Position;
@@ -150,14 +152,19 @@ class AST {
 				case PRIVATE:
 					field.access.push(APRIVATE);
 				case FUNCTION:
-				// 方法定义读取
+					// 方法定义读取
+					field.name = this.readToken().getValueByToken();
+					// 读取参数
+					var params = readTokens(RPAREN_MIN);
+					trace("params=", params);
+					field.value = readBlock();
 				case VAR:
 					field.name = this.readToken().getValueByToken();
 					// 操作符
 					var nextToken = this.readToken();
 					if (nextToken.token == COLON) {
 						// 绑定了类型
-						field.type = readClass();
+						field.type = TYPE(readClass());
 					}
 					if (this.readToken(false).token == EQUAL) {
 						// 赋值处理
@@ -173,6 +180,40 @@ class AST {
 					// 意外行为
 					throw "Token error at " + token.toString();
 			}
+		}
+	}
+
+	/**
+	 * 一个块的token实现
+	 * @return BlockExpr
+	 */
+	public function readBlock():BlockExpr {
+		var blockCounts = 0;
+		var __tokens = [];
+		while (__tokenIndex < __tokens.length) {
+			var token = readToken();
+			switch token.token {
+				case LBRACE:
+					blockCounts++;
+					if (blockCounts > 1) {
+						// 记录
+						__tokens.push(token);
+					}
+				case RBRACE:
+					blockCounts--;
+					if (blockCounts == 0) {
+						return new BlockExpr(__tokens);
+					} else {
+						__tokens.push(token);
+					}
+				default:
+					__tokens.push(token);
+			}
+		}
+		if (__tokens.length > 0) {
+			throw "Block error. blockCounts=" + blockCounts;
+		} else {
+			return null;
 		}
 	}
 

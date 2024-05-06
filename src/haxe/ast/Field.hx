@@ -22,7 +22,7 @@ class Field {
 	/**
 	 * 类型
 	 */
-	public var type:Class<Dynamic>;
+	public var type:FieldType;
 
 	public function new() {}
 }
