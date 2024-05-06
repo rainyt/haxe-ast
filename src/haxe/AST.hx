@@ -62,7 +62,7 @@ class AST {
 		var tokens = [];
 		var commentMatch = ~/(\/\/.*)|(\/\*[\s\S]*?\*\/)/g;
 		var code = commentMatch.map(__hxContent, (f) -> "");
-		var haxeMatch = ~/~.+;|("[\s\S]*?")|""|''|('[\s\S]*?')|#[_a-zA-Z0-9]+|[_a-zA-Z0-9]+|=|\.|;|&&|[><!]=|\/\/.+|[{}()!>\/\+-=%<\[\]?:]/g;
+		var haxeMatch = ~/~.+;|("[\s\S]*?")|""|''|('[\s\S]*?')|#[_a-zA-Z0-9]+|[_a-zA-Z0-9]+|=|\.|;|&&|[><!]=|\/\/.+|[{}()!>\/\+-=%<\[\]?:\n]/g;
 		code = haxeMatch.map(code, (f) -> {
 			var p = f.matchedPos();
 			var pos = new Position(0, p.pos, p.len);

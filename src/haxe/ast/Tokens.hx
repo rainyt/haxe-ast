@@ -13,8 +13,23 @@ class Tokens {
 	 */
 	private var __tokenIndex:Int = 0;
 
+	/**
+	 * 构造Tokens
+	 * @param tokens 
+	 * @param line = 0 
+	 */
 	public function new(tokens:Array<Token>) {
+		var line = 0;
+		if (tokens.length > 0)
+			line = tokens[0].pos.line;
 		this.__tokens = tokens;
+		for (token in this.__tokens) {
+			if (token.token == NEWLINE) {
+				line++;
+			}
+			token.pos.line = line;
+		}
+		this.__tokens = this.__tokens.filter(t -> t.token != NEWLINE);
 	}
 
 	/**

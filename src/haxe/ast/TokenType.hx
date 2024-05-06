@@ -40,6 +40,11 @@ enum abstract TokenType(String) to String from String {
 	var LBRACE = "{";
 
 	/**
+	 * \n
+	 */
+	var NEWLINE = "\n";
+
+	/**
 	 * }
 	 */
 	var RBRACE = "}";
