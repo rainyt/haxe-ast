@@ -15,4 +15,9 @@ enum abstract Access(String) {
 	 * 静态
 	 */
 	var ASTATIC = "static";
+
+	/**
+	 * 可选
+	 */
+	var AOPTION = "option";
 }

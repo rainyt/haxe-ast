@@ -80,6 +80,16 @@ enum abstract TokenType(String) to String from String {
 	var COLON = ":";
 
 	/**
+	 * ?
+	 */
+	var QUESTION = "?";
+
+	/**
+	 * ,
+	 */
+	var COMMA = ",";
+
+	/**
 	 * >
 	 */
 	var GREATER = ">";

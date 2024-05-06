@@ -1,5 +1,6 @@
 package haxe;
 
+import haxe.ast.Tokens;
 import haxe.ast.FieldType;
 import haxe.ast.BlockExpr;
 import haxe.Constraints.Function;
@@ -20,14 +21,9 @@ class AST {
 	private var __hxContent:String;
 
 	/**
-	 * Token 数组
+	 * Token指令集
 	 */
-	private var __tokens:Array<Token> = [];
-
-	/**
-	 * Token 索引
-	 */
-	private var __tokenIndex:Int = 0;
+	private var __tokens:Tokens;
 
 	/**
 	 * 包名
@@ -63,74 +59,42 @@ class AST {
 	 */
 	private function parserTokens():Void {
 		// 注释正则 /\*[^]+\*/|//.+
-		trace("测试换行啊
-        ?
-        换行了");
+		var tokens = [];
 		var commentMatch = ~/(\/\/.*)|(\/\*[\s\S]*?\*\/)/g;
 		var code = commentMatch.map(__hxContent, (f) -> "");
 		var haxeMatch = ~/~.+;|("[\s\S]*?")|""|''|('[\s\S]*?')|#[_a-zA-Z0-9]+|[_a-zA-Z0-9]+|=|\.|;|&&|[><!]=|\/\/.+|[{}()!>\/\+-=%<\[\]?:]/g;
 		code = haxeMatch.map(code, (f) -> {
 			var p = f.matchedPos();
 			var pos = new Position(0, p.pos, p.len);
-			__tokens.push(new Token(f.matched(0), pos));
+			tokens.push(new Token(f.matched(0), pos));
 			return f.matched(0);
 		});
 		trace(code);
-		trace("Token的数量：", __tokens.length);
+		trace("Token的数量：", tokens.length);
+		__tokens = new Tokens(tokens);
 		this.parserAts();
-	}
-
-	/**
-	 * 读取Token
-	 */
-	private function readToken(tokenAdd = true):Token {
-		var token = __tokens[__tokenIndex];
-		if (tokenAdd)
-			__tokenIndex++;
-		return token;
-	}
-
-	/**
-	 * 读取仅接受的Token，直到结束Token后返回
-	 * @param tokenTypes 
-	 * @param end 
-	 * @return Array<Token>
-	 */
-	private function readTokens(?tokenTypes:Array<TokenType>, ?end:TokenType):Array<Token> {
-		var tokens = [];
-		while (__tokenIndex < __tokens.length) {
-			var token = readToken();
-			if (token.token == end && readToken(false).token != end) {
-				break;
-			}
-			if (tokenTypes != null && tokenTypes.indexOf(token.token) == -1) {
-				break;
-			}
-			tokens.push(token);
-		}
-		return tokens;
 	}
 
 	/**
 	 * 解析token为Ats
 	 */
 	private function parserAts():Void {
-		while (__tokenIndex < __tokens.length) {
-			var token = readToken();
+		while (__tokens.hasNext()) {
+			var token = __tokens.readToken();
 			switch token.token {
 				case PACKAGE:
-					var tokens = readTokens(END);
+					var tokens = __tokens.readTokens(END);
 					packageName = tokens.getValueByArrayToken();
 				case DOT:
 				case END:
 				case USING:
-					var tokens = readTokens(END);
+					var tokens = __tokens.readTokens(END);
 					usings.push(Type.resolveClass(tokens.getValueByArrayToken()));
 				case IMPORT:
-					var tokens = readTokens(END);
+					var tokens = __tokens.readTokens(END);
 					imports.push(Type.resolveClass(tokens.getValueByArrayToken()));
 				case CLASS:
-					className = this.readToken().getValueByToken();
+					className = __tokens.readToken().getValueByToken();
 				case LBRACE:
 					this.parserFields();
 				case RBRACE:
@@ -148,8 +112,8 @@ class AST {
 	 */
 	private function parserFields():Void {
 		var field = new Field();
-		while (__tokenIndex < __tokens.length) {
-			var token = this.readToken();
+		while (__tokens.hasNext()) {
+			var token = __tokens.readToken();
 			switch token.token {
 				case PUBLIC:
 					field.access.push(APUBLIC);
@@ -157,19 +121,18 @@ class AST {
 					field.access.push(APRIVATE);
 				case FUNCTION:
 					// 方法定义读取
-					field.name = this.readToken().getValueByToken();
+					field.name = __tokens.readToken().getValueByToken();
 					// 读取参数
 					// 将括号读取
-					readToken();
-					var params = readTokens(RPAREN_MIN);
-					trace("params=", field.name, params);
+					__tokens.readToken();
+					var params = readParamArgs();
 					var retType:FieldType = null;
-					var nextToken = readToken(false);
+					var nextToken = __tokens.readToken(false);
 					if (nextToken.token == COLON) {
 						// 类型
-						__tokenIndex++;
-						retType = TYPE(readClass());
-						nextToken = readToken(false);
+						__tokens.next();
+						retType = TYPE(__tokens.readClass());
+						nextToken = __tokens.readToken(false);
 					}
 					if (nextToken.token == LBRACE) {
 						// 开始解析方法
@@ -177,17 +140,17 @@ class AST {
 					}
 					field.type = FUNCTION(null, retType);
 				case VAR:
-					field.name = this.readToken().getValueByToken();
+					field.name = __tokens.readToken().getValueByToken();
 					// 操作符
-					var nextToken = this.readToken();
+					var nextToken = __tokens.readToken();
 					if (nextToken.token == COLON) {
 						// 绑定了类型
-						field.type = TYPE(readClass());
+						field.type = TYPE(__tokens.readClass());
 					}
-					if (this.readToken(false).token == EQUAL) {
+					if (__tokens.readToken(false).token == EQUAL) {
 						// 赋值处理
-						__tokenIndex++;
-						field.value = readTokens(END).getValueByArrayToken();
+						__tokens.next();
+						field.value = __tokens.readTokens(END).getValueByArrayToken();
 						trace("value is ", field.value);
 					}
 				case END:
@@ -196,7 +159,7 @@ class AST {
 					break;
 				case RBRACE:
 					// 结束
-					__tokenIndex--;
+					__tokens.last();
 					break;
 				default:
 					// 意外行为
@@ -206,15 +169,54 @@ class AST {
 	}
 
 	/**
+	 * 解析方法参数
+	 * @return Array<Field>
+	 */
+	public function readParamArgs():Array<Field> {
+		var params = __tokens.readTokens(RPAREN_MIN);
+		trace("params=", params);
+		var args = [];
+		var field:Field = null;
+		var i = 0;
+		while (i < params.length) {
+			if (field == null) {
+				field = new Field();
+			}
+			var token = params[i];
+			switch (token.token) {
+				case QUESTION:
+					// 可选
+					field.access.push(AOPTION);
+				case COLON:
+					// 类型识别
+					i++;
+					var typeString = params[i].getValueByToken();
+					field.type = TYPE(Type.resolveClass(typeString));
+				case EQUAL:
+					// 默认值
+					i++;
+					field.value = params[i].getValueByToken();
+				default:
+					if (field.name == null) {
+						field.name = token.getValueByToken();
+					} else {
+						throw "Token error at " + token.toString();
+					}
+			}
+			i++;
+		}
+		return args;
+	}
+
+	/**
 	 * 一个块的token实现
 	 * @return BlockExpr
 	 */
 	public function readBlock():BlockExpr {
-		trace("readBlock");
 		var blockCounts = 0;
 		var tokens = [];
-		while (__tokenIndex < __tokens.length) {
-			var token = readToken();
+		while (__tokens.hasNext()) {
+			var token = __tokens.readToken();
 			switch token.token {
 				case LBRACE:
 					blockCounts++;
@@ -240,16 +242,5 @@ class AST {
 		}
 	}
 
-	/**
-	 * 获得一个类型
-	 */
-	public function readClass():Class<Dynamic> {
-		var className = readToken().getValueByToken();
-		var nextToken = readToken(false);
-		if (nextToken.token == LESS) {
-			__tokenIndex++;
-			readTokens(GREATER);
-		}
-		return Type.resolveClass(className);
-	}
+	
 }
