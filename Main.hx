@@ -7,7 +7,7 @@ class Main {
 	 */
 	static function main() {
 		var ast = new AST(File.getContent("./src/haxe/AST.hx"));
-		test(0, 1);
+		var ast2 = new AST(File.getContent("./src/haxe/ast/Tokens.hx"));
 	}
 
 	static function test(a, b):Void {}

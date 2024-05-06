@@ -37,7 +37,8 @@ class Tokens {
 		var tokens = [];
 		while (__tokenIndex < __tokens.length) {
 			var token = readToken();
-			if (token.token == end && readToken(false).token != end) {
+			var nextToken = readToken(false);
+			if (token.token == end && nextToken != null && nextToken.token != end) {
 				break;
 			}
 			if (tokenTypes != null && tokenTypes.indexOf(token.token) == -1) {
@@ -76,7 +77,7 @@ class Tokens {
 	public function readClass():Class<Dynamic> {
 		var className = readToken().getValueByToken();
 		var nextToken = readToken(false);
-		if (nextToken.token == LESS) {
+		if (nextToken != null && nextToken.token == LESS) {
 			__tokenIndex++;
 			readTokens(GREATER);
 		}

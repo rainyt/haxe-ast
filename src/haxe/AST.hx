@@ -173,29 +173,29 @@ class AST {
 	 * @return Array<Field>
 	 */
 	public function readParamArgs():Array<Field> {
-		var params = __tokens.readTokens(RPAREN_MIN);
-		trace("params=", params);
+		var __params = __tokens.readTokens(RPAREN_MIN);
+		var tokens = new Tokens(__params);
+		trace("params=", __params);
 		var args = [];
 		var field:Field = null;
-		var i = 0;
-		while (i < params.length) {
+		while (tokens.hasNext()) {
 			if (field == null) {
 				field = new Field();
 			}
-			var token = params[i];
+			var token = tokens.readToken();
 			switch (token.token) {
 				case QUESTION:
 					// 可选
 					field.access.push(AOPTION);
 				case COLON:
 					// 类型识别
-					i++;
-					var typeString = params[i].getValueByToken();
-					field.type = TYPE(Type.resolveClass(typeString));
+					field.type = TYPE(tokens.readClass());
 				case EQUAL:
 					// 默认值
-					i++;
-					field.value = params[i].getValueByToken();
+					field.value = tokens.readToken().getValueByToken();
+				case COMMA:
+					args.push(field);
+					field = null;
 				default:
 					if (field.name == null) {
 						field.name = token.getValueByToken();
@@ -203,7 +203,6 @@ class AST {
 						throw "Token error at " + token.toString();
 					}
 			}
-			i++;
 		}
 		return args;
 	}
@@ -241,6 +240,4 @@ class AST {
 			return null;
 		}
 	}
-
-	
 }
