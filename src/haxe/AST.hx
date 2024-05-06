@@ -1,5 +1,6 @@
 package haxe;
 
+import haxe.ast.FieldType;
 import haxe.ast.BlockExpr;
 import haxe.Constraints.Function;
 import haxe.ast.Field;
@@ -132,6 +133,9 @@ class AST {
 					className = this.readToken().getValueByToken();
 				case LBRACE:
 					this.parserFields();
+				case RBRACE:
+					// 编译结束
+					trace("编译结束");
 				default:
 					// 意外行为
 					throw "Token error at " + token.toString();
@@ -155,9 +159,23 @@ class AST {
 					// 方法定义读取
 					field.name = this.readToken().getValueByToken();
 					// 读取参数
+					// 将括号读取
+					readToken();
 					var params = readTokens(RPAREN_MIN);
-					trace("params=", params);
-					field.value = readBlock();
+					trace("params=", field.name, params);
+					var retType:FieldType = null;
+					var nextToken = readToken(false);
+					if (nextToken.token == COLON) {
+						// 类型
+						__tokenIndex++;
+						retType = TYPE(readClass());
+						nextToken = readToken(false);
+					}
+					if (nextToken.token == LBRACE) {
+						// 开始解析方法
+						field.value = readBlock();
+					}
+					field.type = FUNCTION(null, retType);
 				case VAR:
 					field.name = this.readToken().getValueByToken();
 					// 操作符
@@ -176,6 +194,10 @@ class AST {
 					// 下一个
 					this.parserFields();
 					break;
+				case RBRACE:
+					// 结束
+					__tokenIndex--;
+					break;
 				default:
 					// 意外行为
 					throw "Token error at " + token.toString();
@@ -188,8 +210,9 @@ class AST {
 	 * @return BlockExpr
 	 */
 	public function readBlock():BlockExpr {
+		trace("readBlock");
 		var blockCounts = 0;
-		var __tokens = [];
+		var tokens = [];
 		while (__tokenIndex < __tokens.length) {
 			var token = readToken();
 			switch token.token {
@@ -197,20 +220,20 @@ class AST {
 					blockCounts++;
 					if (blockCounts > 1) {
 						// 记录
-						__tokens.push(token);
+						tokens.push(token);
 					}
 				case RBRACE:
 					blockCounts--;
 					if (blockCounts == 0) {
-						return new BlockExpr(__tokens);
+						return new BlockExpr(tokens);
 					} else {
-						__tokens.push(token);
+						tokens.push(token);
 					}
 				default:
-					__tokens.push(token);
+					tokens.push(token);
 			}
 		}
-		if (__tokens.length > 0) {
+		if (tokens.length > 0) {
 			throw "Block error. blockCounts=" + blockCounts;
 		} else {
 			return null;
